@@ -1,0 +1,427 @@
+#encoding UTF-8
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>$station.location</title>
+  <link rel="stylesheet" href="static/weewxha.css">
+  ## The tab icon follows the forecast, so a glance at the tab says something.
+  <link rel="icon" href="$weewxha_forecast.favicon">
+  ## Without JavaScript, the whole page reloads as it always did. With it,
+  ## the script at the end of the body updates the parts that change and
+  ## leaves the radar frame alone -- a full reload restarts the radar
+  ## application, throwing away whatever you had panned or zoomed to.
+  <noscript><meta http-equiv="refresh" content="$Extras.refresh_seconds"></noscript>
+</head>
+<body>
+  <header>
+    <h1>$station.location</h1>
+    <p class="subtitle">$Extras.subtitle</p>
+  </header>
+
+  ## ---------------------------------------------------------------------
+  ## Local forecasts. Each is named, because they are different algorithms
+  ## working from the same barometer and will sometimes disagree -- which is
+  ## itself informative.
+  ## ---------------------------------------------------------------------
+  #if $weewxha_forecast.text is not None
+  <section class="forecasts">
+    <article class="forecast">
+      <span class="label">Zambretti <span class="horizon">~12 h</span></span>
+      <div class="forecast-body">
+        #if $weewxha_forecast.icon
+        <span class="forecast-icon">$weewxha_forecast.icon</span>
+        #end if
+        <p class="headline">$weewxha_forecast.text</p>
+      </div>
+      <p class="detail">
+        #if $weewxha_forecast.trend is not None
+        Pressure $weewxha_forecast.trend $weewxha_forecast.trend_arrow
+        ($weewxha_forecast.delta_str over $weewxha_forecast.period_hours h)
+        &middot;
+        #end if
+        code $weewxha_forecast.code
+        #if $weewxha_forecast.source == 'homeassistant'
+        &middot; $weewxha_forecast.pressure_str from Home Assistant
+        #end if
+      </p>
+    </article>
+
+    ## -------------------------------------------------------------------
+    ## Time, date and the sky. The clock is rendered server-side so it is
+    ## right without JavaScript, and ticks live when there is some.
+    ## -------------------------------------------------------------------
+    <article class="forecast now">
+      <span class="label">Now</span>
+      <div class="now-body">
+        <div class="now-time">
+          <p class="clock" id="clock" data-generated="$weewxha_now.timestamp">$weewxha_now.time</p>
+          <p class="now-date" id="clock-date">$weewxha_now.date</p>
+        </div>
+        #if $weewxha_now.moon_icon
+        <div class="now-moon">
+          $weewxha_now.moon_icon
+          <span class="moon-label">$weewxha_now.moon_phase<br><span class="moon-pct">$weewxha_now.moon_fullness% lit</span></span>
+        </div>
+        #end if
+      </div>
+      <dl class="sky">
+        #if $weewxha_now.sunrise
+        <div><dt>Sunrise</dt><dd>$weewxha_now.sunrise</dd></div>
+        #end if
+        #if $weewxha_now.sunset
+        <div><dt>Sunset</dt><dd>$weewxha_now.sunset</dd></div>
+        #end if
+        #if $weewxha_now.day_length
+        <div><dt>Daylight</dt><dd>$weewxha_now.day_length</dd></div>
+        #end if
+        #if $weewxha_now.moonrise
+        <div><dt>Moonrise</dt><dd>$weewxha_now.moonrise</dd></div>
+        #end if
+        #if $weewxha_now.moonset
+        <div><dt>Moonset</dt><dd>$weewxha_now.moonset</dd></div>
+        #end if
+      </dl>
+    </article>
+  </section>
+  #end if
+
+  <main class="cards">
+    <section class="card">
+      <span class="label">Outside Temperature</span>
+      <span class="value">$current.outTemp</span>
+    </section>
+    <section class="card">
+      <span class="label">Feels Like</span>
+      #if $current.heatindex.raw is not None and $current.heatindex.raw > $current.outTemp.raw
+      <span class="value">$current.heatindex</span>
+      #elif $current.windchill.raw is not None and $current.windchill.raw < $current.outTemp.raw
+      <span class="value">$current.windchill</span>
+      #else
+      <span class="value">$current.outTemp</span>
+      #end if
+    </section>
+    <section class="card">
+      <span class="label">Humidity</span>
+      <span class="value">$current.outHumidity</span>
+    </section>
+    <section class="card">
+      <span class="label">Dew Point</span>
+      <span class="value">$current.dewpoint</span>
+    </section>
+    <section class="card">
+      <span class="label">Barometer</span>
+      #if not $current.barometer.has_data and $weewxha_forecast.source == 'homeassistant'
+      ## The station has no barometer of its own, so show the reading the
+      ## forecast used and say where it came from -- an unattributed value
+      ## here would look like something this station measured.
+      <span class="value">$weewxha_forecast.pressure_str</span>
+      <span class="note">from Home Assistant</span>
+      #else
+      <span class="value">$current.barometer</span>
+      #end if
+    </section>
+    #if $current.inTemp.has_data or $weewxha_borrowed.get('inTemp')
+    <section class="card">
+      <span class="label">Inside Temperature</span>
+      #if $current.inTemp.has_data
+      <span class="value">$current.inTemp</span>
+      #else
+      <span class="value">$weewxha_borrowed.inTemp.formatted</span>
+      <span class="note">from Home Assistant</span>
+      #end if
+    </section>
+    #end if
+    #if $current.inHumidity.has_data or $weewxha_borrowed.get('inHumidity')
+    <section class="card">
+      <span class="label">Inside Humidity</span>
+      #if $current.inHumidity.has_data
+      <span class="value">$current.inHumidity</span>
+      #else
+      <span class="value">$weewxha_borrowed.inHumidity.formatted</span>
+      <span class="note">from Home Assistant</span>
+      #end if
+    </section>
+    #end if
+    <section class="card">
+      <span class="label">Wind</span>
+      <span class="value">$current.windSpeed from $current.windDir.ordinal_compass</span>
+    </section>
+    #if $current.windGust.has_data
+    <section class="card">
+      <span class="label">Wind Gust</span>
+      <span class="value">$current.windGust</span>
+    </section>
+    #end if
+    <section class="card">
+      <span class="label">Rain Rate</span>
+      <span class="value">$current.rainRate</span>
+    </section>
+    <section class="card">
+      <span class="label">Rain Today</span>
+      <span class="value">$day.rain.sum</span>
+    </section>
+    #if $current.UV.has_data
+    <section class="card">
+      <span class="label">UV Index</span>
+      <span class="value">$current.UV</span>
+    </section>
+    #end if
+    #if $current.radiation.has_data
+    <section class="card">
+      <span class="label">Solar Radiation</span>
+      <span class="value">$current.radiation</span>
+    </section>
+    #end if
+    <section class="card">
+      <span class="label">Today's High / Low</span>
+      <span class="value">$day.outTemp.max / $day.outTemp.min</span>
+    </section>
+    #if $current.consBatteryVoltage.has_data
+    <section class="card">
+      <span class="label">Console Battery</span>
+      <span class="value">$current.consBatteryVoltage</span>
+    </section>
+    #end if
+  </main>
+
+  #if $weewxha_nws.days
+  ## ---------------------------------------------------------------------
+  ## National Weather Service seven-day outlook.
+  ## ---------------------------------------------------------------------
+  <section class="outlook">
+    <h2>Seven-day forecast
+      <span class="source">National Weather Service#if $weewxha_nws.office# &middot; $weewxha_nws.office#end if##if $weewxha_nws.stale# &middot; cached#end if#</span>
+    </h2>
+    <div class="days">
+      #for $day in $weewxha_nws.days
+      <article class="day">
+        <span class="day-name">$day.name</span>
+        #if $day.condition
+        <span class="day-icon">$weewxha_icon($day.condition, 34)</span>
+        #end if
+        <span class="day-temps">
+          #if $day.high is not None#<span class="high">$day.high&deg;</span>#end if#
+          #if $day.low is not None#<span class="low">$day.low&deg;</span>#end if#
+        </span>
+        <span class="day-short">$day.short</span>
+        <span class="day-meta">
+          #if $day.precipitation#$day.precipitation% precip &middot; #end if#$day.wind
+        </span>
+      </article>
+      #end for
+    </div>
+  </section>
+  #end if
+
+  #if $weewxha_charts.has_any or $weewxha_changes
+  ## ---------------------------------------------------------------------
+  ## History: where the station, the forecast's pressure and the forecast
+  ## itself have been. WeeWX archives observations but never predictions,
+  ## so the forecast history comes from the skin's own store.
+  ## ---------------------------------------------------------------------
+  <section class="history">
+    <h2>History <span class="source">last 24 hours</span></h2>
+    <div class="charts">
+      #for $chart in $weewxha_charts.items
+      <figure class="chart-box">
+        <figcaption>$chart.title <span class="unit">$chart.unit</span></figcaption>
+        $chart.svg
+      </figure>
+      #end for
+    </div>
+
+    #if $weewxha_changes
+    <ol class="changes">
+      #for $change in $weewxha_changes
+      <li>
+        #if $change.condition
+        <span class="change-icon">$weewxha_icon($change.condition, 20)</span>
+        #end if
+        <span class="change-text">$change.text</span>
+        <time>$change.when</time>
+      </li>
+      #end for
+    </ol>
+    #end if
+  </section>
+  #end if
+
+  #if $weewxha_nws.alerts or $weewxha_nws.radar
+  ## ---------------------------------------------------------------------
+  ## Alerts on the left, radar on the right.
+  ## ---------------------------------------------------------------------
+  <section class="panes">
+    <section class="pane alerts">
+      <h2>Active alerts</h2>
+      <div class="alerts-list" style="max-height: ${weewxha_nws.pane_height}px">
+      #if $weewxha_nws.alerts
+      #for $alert in $weewxha_nws.alerts
+      <article class="alert severity-$alert.severity.lower()">
+        <span class="alert-event">$alert.event</span>
+        <span class="alert-meta">$alert.severity#if $alert.expires_label# &middot; until $alert.expires_label#end if#</span>
+        #if $alert.headline
+        <p class="alert-headline">$alert.headline</p>
+        #end if
+        #if $alert.area
+        <p class="alert-area">$alert.area</p>
+        #end if
+      </article>
+      #end for
+      #else
+      <p class="none">No active alerts for this location.</p>
+      #end if
+      </div>
+    </section>
+
+    <section class="pane radar">
+      <h2>Radar#if $weewxha_nws.radar# <span class="source">$weewxha_nws.radar.station</span>#end if#</h2>
+      #if $weewxha_nws.radar
+      #if $weewxha_nws.radar.mode != 'image'
+      ## The viewer needs the internet for this frame; the cached copy below
+      ## needs only the web server serving this page. The frame is shown by
+      ## default and the fallback revealed only if it fails to load, so with
+      ## no JavaScript at all you get exactly the frame and nothing extra.
+      <div class="radar-embed" id="radar-embed" data-probe="$weewxha_nws.radar.loop_url">
+        <iframe class="radar-frame" src="$weewxha_nws.radar.embed_url"
+                style="height: ${weewxha_nws.radar.height}px"
+                title="Interactive NWS radar for $weewxha_nws.radar.station"
+                onload="this.dataset.loaded = '1'"
+                referrerpolicy="no-referrer"></iframe>
+        #if $weewxha_nws.radar.local_url
+        <figure class="radar-fallback" id="radar-fallback" hidden>
+          <img src="$weewxha_nws.radar.local_url" alt="Cached NWS radar loop for $weewxha_nws.radar.station">
+          <figcaption>Live radar unavailable &mdash; cached image, updated $weewxha_nws.radar.cached_label</figcaption>
+        </figure>
+        <script>
+          (function () {
+            var embed = document.getElementById('radar-embed');
+            var fallback = document.getElementById('radar-fallback');
+            if (!embed || !fallback) return;
+            var frame = embed.querySelector('.radar-frame');
+            if (!frame) return;
+
+            function showCached() {
+              if (!fallback.hidden) return;
+              frame.hidden = true;
+              fallback.hidden = false;
+            }
+
+            // The load event cannot be trusted to detect failure: a frame
+            // that cannot be reached still fires it, because the browser
+            // renders its own error page inside. So ask the radar host
+            // directly whether it is reachable. An opaque no-cors response
+            // means yes; only a network failure rejects.
+            if (navigator.onLine === false) {
+              showCached();
+            } else if (window.fetch && embed.dataset.probe) {
+              fetch(embed.dataset.probe, { mode: 'no-cors', cache: 'no-store' })
+                .catch(showCached);
+            }
+
+            // Backstop for a frame that hangs without ever completing.
+            window.setTimeout(function () {
+              if (frame.dataset.loaded !== '1') showCached();
+            }, 8000);
+          }());
+        </script>
+        #end if
+      </div>
+      <p class="radar-link"><a href="$weewxha_nws.radar.embed_url" target="_blank" rel="noopener">Open full radar &rarr;</a></p>
+      #else
+      ## Image mode serves the local copy, which keeps working offline.
+      #if $weewxha_nws.radar.local_url
+      <figure class="radar-fallback">
+        <a href="$weewxha_nws.radar.page_url" target="_blank" rel="noopener">
+          <img src="$weewxha_nws.radar.local_url" alt="NWS radar loop for $weewxha_nws.radar.station">
+        </a>
+        <figcaption>
+          #if $weewxha_nws.radar.cache_fresh
+          Updated $weewxha_nws.radar.cached_label
+          #else
+          Cached image &mdash; could not refresh, updated $weewxha_nws.radar.cached_label
+          #end if
+        </figcaption>
+      </figure>
+      #else
+      <a href="$weewxha_nws.radar.page_url" target="_blank" rel="noopener">
+        <img src="$weewxha_nws.radar.loop_url" alt="NWS radar loop for $weewxha_nws.radar.station" loading="lazy">
+      </a>
+      #end if
+      #end if
+      #else
+      <p class="none">No radar site for this location.</p>
+      #end if
+    </section>
+  </section>
+  #end if
+
+  <footer>
+    <p>Updated $current.dateTime &mdash; data feed for Home Assistant: <a href="weewxha.json">weewxha.json</a></p>
+    <p class="credit">Generated by the weewxha skin, WeeWX $station.version</p>
+  </footer>
+  <script>
+    (function () {
+      var interval = $Extras.refresh_seconds * 1000;
+      if (!interval || !window.fetch || !window.DOMParser) return;
+
+      // Everything that changes between reports. The radar pane is absent on
+      // purpose: replacing it would reload the frame, which is the whole
+      // reason for updating this way rather than reloading the document.
+      var regions = ['.forecasts', 'main.cards', '.outlook', '.history',
+                     '.pane.alerts', 'footer'];
+
+      function update() {
+        fetch(window.location.pathname + '?_=' + Date.now(), { cache: 'no-store' })
+          .then(function (response) {
+            if (!response.ok) throw new Error(response.status);
+            return response.text();
+          })
+          .then(function (html) {
+            var incoming = new DOMParser().parseFromString(html, 'text/html');
+            regions.forEach(function (selector) {
+              var fresh = incoming.querySelector(selector);
+              var current = document.querySelector(selector);
+              if (!fresh || !current) return;
+
+              // Keep the reader where they were in a long alert list.
+              var scroller = current.querySelector('.alerts-list');
+              var offset = scroller ? scroller.scrollTop : null;
+
+              var adopted = document.importNode(fresh, true);
+              current.parentNode.replaceChild(adopted, current);
+
+              if (offset) {
+                var replaced = adopted.querySelector('.alerts-list');
+                if (replaced) replaced.scrollTop = offset;
+              }
+            });
+          })
+          .catch(function () {
+            // Offline, or the report is mid-write. Leave what is on screen.
+          });
+      }
+
+      window.setInterval(update, interval);
+
+      // The clock is server-rendered, so it is correct without JavaScript;
+      // this just keeps it honest between reports.
+      function tick() {
+        var clock = document.getElementById('clock');
+        var date = document.getElementById('clock-date');
+        if (!clock) return;
+        var now = new Date();
+        clock.textContent = now.toLocaleTimeString(undefined,
+          { hour: '2-digit', minute: '2-digit' });
+        if (date) {
+          date.textContent = now.toLocaleDateString(undefined,
+            { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        }
+      }
+      tick();
+      window.setInterval(tick, 1000);
+    }());
+  </script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to WeeWX",
+        "description": "Enter the URL where the weewxha skin publishes weewxha.json, e.g. http://weather.local/weewxha.json. Untick certificate verification only if the server uses a certificate from a private CA.",
+        "data": {
+          "url": "Data feed URL",
+          "scan_interval": "Poll interval (seconds)",
+          "verify_ssl": "Verify the TLS certificate"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not fetch or parse that URL.",
+      "invalid_data": "That URL didn't return a weewxha data feed."
+    },
+    "abort": {
+      "already_configured": "This feed is already configured."
+    }
+  }
+}

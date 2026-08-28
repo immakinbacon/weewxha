@@ -1,0 +1,129 @@
+#encoding UTF-8
+{
+  "generated_at": $hajson($weewxha_generated_at),
+  "station": {
+    "name": $hajson($station.location),
+    "latitude": $hajson($station.latitude_f),
+    "longitude": $hajson($station.longitude_f),
+    "altitude": {"value": $hajson($station.altitude.raw), "unit": "$unit.unit_type.altitude"},
+    "hardware": $hajson($station.hardware),
+    "weewx_version": $hajson($station.version)
+  },
+  "current": {
+#if $current.UV.has_data
+    "UV": {"value": $hajson($current.UV.raw), "unit": "$unit.unit_type.UV"},
+#end if
+#if $current.radiation.has_data
+    "radiation": {"value": $hajson($current.radiation.raw), "unit": "$unit.unit_type.radiation"},
+#end if
+#if $current.windGust.has_data
+    "windGust": {"value": $hajson($current.windGust.raw), "unit": "$unit.unit_type.windGust"},
+#end if
+#if $current.windGustDir.has_data
+    "windGustDir": {"value": $hajson($current.windGustDir.raw), "unit": "$unit.unit_type.windGustDir"},
+#end if
+#if $current.heatindex.has_data
+    "heatindex": {"value": $hajson($current.heatindex.raw), "unit": "$unit.unit_type.heatindex"},
+#end if
+#if $current.windchill.has_data
+    "windchill": {"value": $hajson($current.windchill.raw), "unit": "$unit.unit_type.windchill"},
+#end if
+#if $current.inTemp.has_data
+    "inTemp": {"value": $hajson($current.inTemp.raw), "unit": "$unit.unit_type.inTemp"},
+#elif $weewxha_borrowed.get('inTemp')
+    "inTemp": {"value": $hajson($weewxha_borrowed.inTemp.value), "unit": $hajson($weewxha_borrowed.inTemp.unit)},
+#end if
+#if $current.inHumidity.has_data
+    "inHumidity": {"value": $hajson($current.inHumidity.raw), "unit": "$unit.unit_type.inHumidity"},
+#elif $weewxha_borrowed.get('inHumidity')
+    "inHumidity": {"value": $hajson($weewxha_borrowed.inHumidity.value), "unit": $hajson($weewxha_borrowed.inHumidity.unit)},
+#end if
+#if $current.consBatteryVoltage.has_data
+    "consBatteryVoltage": {"value": $hajson($current.consBatteryVoltage.raw), "unit": "$unit.unit_type.consBatteryVoltage"},
+#end if
+#if $current.txBatteryStatus.has_data
+    "txBatteryStatus": {"value": $hajson($current.txBatteryStatus.raw), "unit": null},
+#end if
+#if $current.rxCheckPercent.has_data
+    "rxCheckPercent": {"value": $hajson($current.rxCheckPercent.raw), "unit": "$unit.unit_type.rxCheckPercent"},
+#end if
+    "rainRate": {"value": $hajson($current.rainRate.raw), "unit": "$unit.unit_type.rainRate"},
+    "dewpoint": {"value": $hajson($current.dewpoint.raw), "unit": "$unit.unit_type.dewpoint"},
+#if $current.barometer.has_data
+    "barometer": {"value": $hajson($current.barometer.raw), "unit": "$unit.unit_type.barometer"},
+#elif $weewxha_forecast.source == 'homeassistant'
+## The station has no barometer, so the reading the forecast is using stands
+## in for it -- the same rule the borrowed inside readings follow.
+    "barometer": {"value": $hajson($weewxha_forecast.pressure), "unit": $hajson($weewxha_forecast.pressure_unit)},
+#else
+    "barometer": {"value": null, "unit": "$unit.unit_type.barometer"},
+#end if
+    "windSpeed": {"value": $hajson($current.windSpeed.raw), "unit": "$unit.unit_type.windSpeed"},
+    "windDir": {"value": $hajson($current.windDir.raw), "unit": "$unit.unit_type.windDir"},
+    "outHumidity": {"value": $hajson($current.outHumidity.raw), "unit": "$unit.unit_type.outHumidity"},
+    "outTemp": {"value": $hajson($current.outTemp.raw), "unit": "$unit.unit_type.outTemp"},
+    "dateTime": $hajson($current.dateTime.raw)
+  },
+  "day": {
+    "outTemp_min": {"value": $hajson($day.outTemp.min.raw), "unit": "$unit.unit_type.outTemp"},
+    "outTemp_max": {"value": $hajson($day.outTemp.max.raw), "unit": "$unit.unit_type.outTemp"},
+    "windSpeed_max": {"value": $hajson($day.windSpeed.max.raw), "unit": "$unit.unit_type.windSpeed"},
+    "rain_sum": {"value": $hajson($day.rain.sum.raw), "unit": "$unit.unit_type.rain"}
+  },
+  "forecast": {
+#if $weewxha_forecast.trend is not None
+    "pressure_trend": {"value": $hajson($weewxha_forecast.trend), "unit": null},
+    "barometer_delta": {"value": $hajson($weewxha_forecast.delta), "unit": $hajson($weewxha_forecast.delta_unit)},
+#end if
+#if $weewxha_forecast.source is not None
+    "pressure_source": {"value": $hajson($weewxha_forecast.source), "unit": null},
+    "pressure": {"value": $hajson($weewxha_forecast.pressure), "unit": $hajson($weewxha_forecast.pressure_unit)},
+#end if
+    "zambretti_code": {"value": $hajson($weewxha_forecast.code), "unit": null},
+    "zambretti": {"value": $hajson($weewxha_forecast.text), "unit": null},
+    "condition": {"value": $hajson($weewxha_forecast.condition), "unit": null}
+  },
+  "nws": {
+    "office": $hajson($weewxha_nws.office),
+    "forecast_updated": $hajson($weewxha_nws.forecast_updated),
+    "forecast_text": $hajson($weewxha_nws.forecast_text),
+    "stale": #if $weewxha_nws.stale#true#else#false#end if#,
+    "radar": #if $weewxha_nws.radar#{"station": $hajson($weewxha_nws.radar.station), "mode": $hajson($weewxha_nws.radar.mode), "loop_url": $hajson($weewxha_nws.radar.loop_url), "page_url": $hajson($weewxha_nws.radar.page_url), "enhanced_url": $hajson($weewxha_nws.radar.enhanced_url), "station_url": $hajson($weewxha_nws.radar.station_url), "default_url": $hajson($weewxha_nws.radar.default_url), "plain_url": $hajson($weewxha_nws.radar.plain_url), "embed_url": $hajson($weewxha_nws.radar.embed_url), "local_url": $hajson($weewxha_nws.radar.local_url), "cached_age": $hajson($weewxha_nws.radar.cached_age), "cached_label": $hajson($weewxha_nws.radar.cached_label), "cache_fresh": $hajson($weewxha_nws.radar.cache_fresh)}#else#null#end if#,
+    "days": [
+#set $first = True
+#for $day in $weewxha_nws.days
+#if not $first#,
+#end if##set $first = False
+      {"name": $hajson($day.name), "start": $hajson($day.start), "is_daytime": #if $day.is_daytime#true#else#false#end if#, "high": $hajson($day.high), "low": $hajson($day.low), "unit": $hajson($day.unit), "precipitation": $hajson($day.precipitation), "wind": $hajson($day.wind), "short": $hajson($day.short), "detailed": $hajson($day.detailed), "icon": $hajson($day.icon), "condition": $hajson($day.condition)}#slurp
+#end for
+
+    ],
+    "narrative": [
+#set $first = True
+#for $period in $weewxha_nws.narrative
+#if not $first#,
+#end if##set $first = False
+      {"name": $hajson($period.name), "start": $hajson($period.start), "end": $hajson($period.end), "is_daytime": #if $period.is_daytime#true#else#false#end if#, "temperature": $hajson($period.temperature), "unit": $hajson($period.unit), "short": $hajson($period.short), "detailed": $hajson($period.detailed)}#slurp
+#end for
+
+    ],
+    "alerts": [
+#set $first = True
+#for $alert in $weewxha_nws.alerts
+#if not $first#,
+#end if##set $first = False
+      {"id": $hajson($alert.id), "event": $hajson($alert.event), "severity": $hajson($alert.severity), "urgency": $hajson($alert.urgency), "certainty": $hajson($alert.certainty), "headline": $hajson($alert.headline), "area": $hajson($alert.area), "effective": $hajson($alert.effective), "expires": $hajson($alert.expires), "ends": $hajson($alert.ends), "description": $hajson($alert.description), "instruction": $hajson($alert.instruction), "url": $hajson($alert.url), "expires_label": $hajson($alert.expires_label), "effective_label": $hajson($alert.effective_label)}#slurp
+#end for
+
+    ]
+  },
+  "history": [
+#set $first = True
+#for $entry in $weewxha_history
+#if not $first#,
+#end if##set $first = False
+    {"timestamp": $hajson($entry.timestamp), "when": $hajson($entry.when), "code": $hajson($entry.get('code')), "text": $hajson($entry.get('text')), "condition": $hajson($entry.get('condition')), "pressure": $hajson($entry.get('pressure')), "trend": $hajson($entry.get('trend')), "source": $hajson($entry.get('source'))}#slurp
+#end for
+
+  ]
+}
