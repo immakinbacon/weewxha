@@ -1,0 +1,178 @@
+# weewxha: the [StdReport] stanza, for pasting into weewx.conf
+#
+# `weectl extension install` already adds the minimal version of this. Paste
+# the parts you want on top of it -- everything below the first three lines is
+# optional.
+#
+# Put your settings HERE, in weewx.conf, rather than in skins/weewxha/skin.conf:
+# reinstalling or upgrading the extension overwrites skin.conf, but weewx.conf
+# is left alone. Options set here override the skin's defaults.
+#
+# Nesting is by bracket depth, not indentation: [StdReport] -> [[weewxha]] ->
+# [[[Forecast]]] -> [[[[HomeAssistant]]]]. Keep the brackets exactly as they
+# are; the indentation is only for readability.
+
+[StdReport]
+
+    [[weewxha]]
+        skin = weewxha
+        HTML_ROOT = weewxha
+        enable = true
+
+        # ------------------------------------------------------------------
+        # Units. Defaults to US customary (degree_F, inHg, mph, inch).
+        # Uncomment and edit for metric.
+        # ------------------------------------------------------------------
+        #[[[Units]]]
+        #    [[[[Groups]]]]
+        #        group_temperature = degree_C
+        #        group_pressure    = hPa
+        #        group_speed       = km_per_hour
+        #        group_rain        = mm
+        #        group_rainrate    = mm_per_hour
+        #        group_altitude    = meter
+
+        # ------------------------------------------------------------------
+        # Zambretti forecast, computed from your own barometer history.
+        # ------------------------------------------------------------------
+        [[[Forecast]]]
+            enable = true
+
+            # Pressure trend window, in seconds. 3 hours is the period the
+            # Zambretti tables were built around. Expect no trend in the feed
+            # until this much history has accumulated.
+            trend_period = 10800
+
+            # Expected local pressure range, in hPa. Narrow it to what your
+            # station actually sees to get the full spread of forecasts
+            # instead of only the middle ones.
+            baro_lower = 950.0
+            baro_upper = 1050.0
+
+            # --------------------------------------------------------------
+            # Optional: take the pressure from a Home Assistant sensor
+            # instead of the station barometer -- for stations that have no
+            # barometer of their own. Leave enable = false to use the
+            # station's barometer.
+            #
+            # The entity must report SEA-LEVEL pressure (what WeeWX calls
+            # "barometer"). An absolute/station-pressure sensor will produce
+            # a confidently wrong forecast; correct it for altitude first.
+            # --------------------------------------------------------------
+            [[[[HomeAssistant]]]]
+                enable = false
+                url = http://homeassistant.local:8123
+                barometer_entity_id = sensor.outdoor_pressure
+
+                # Prefer token_file over an inline token: weewx.conf is
+                # usually world-readable. Create it with mode 600, owned by
+                # the user WeeWX runs as. Get the token from Home Assistant:
+                # profile -> Security -> Long-lived access tokens.
+                token_file = /etc/weewx/ha_token
+                #token =
+
+                # Seconds to wait before giving up and falling back to the
+                # station barometer.
+                timeout = 10
+
+                # Optional: take the inside temperature and humidity from Home
+                # Assistant too, for a station with no console sensors. Each is
+                # independent -- set either, both or neither. They are converted
+                # into this skin's units and appear alongside the station's own
+                # readings, labelled on the dashboard as coming from Home Assistant.
+                #inside_temperature_entity_id = sensor.living_room_temperature
+                #inside_humidity_entity_id = sensor.living_room_humidity
+                # Only if the temperature entity has no unit_of_measurement: C, F or K
+                #inside_unit = C
+
+                # TLS, for an https URL. If Home Assistant uses a private
+                # CA, point ca_file at that CA certificate (or install it in
+                # the system trust store). verify = false accepts any
+                # certificate and exposes the token -- last resort only.
+                verify = true
+                #ca_file = /etc/ssl/certs/internal-ca.pem
+
+                # Is the entity reporting sea-level pressure, or the absolute
+                # pressure where it sits? Zambretti needs sea level. Many cheap
+                # sensors report absolute, which at any altitude reads low --
+                # about 29 hPa at 250 m -- and gives a confidently wrong forecast
+                # with nothing on the page to show it. Set 'absolute' and the
+                # reading is reduced to sea level using the station altitude and
+                # outside temperature.
+                #   sealevel -- already corrected (the default)
+                #   absolute -- raw sensor pressure, correct it here
+                pressure_type = sealevel
+
+                # Only needed if the entity has no unit_of_measurement.
+                # One of: Pa, hPa, mbar, kPa, bar, cbar, mmHg, inHg, psi
+                #unit = hPa
+
+                # Rolling pressure history used for the trend. Defaults to
+                # weewxha_pressure.json beside the WeeWX database.
+                #history_file = /var/lib/weewx/weewxha_pressure.json
+
+            # --------------------------------------------------------------
+            # Optional: reword or translate any of the 26 forecast phrases,
+            # keyed by Zambretti letter code. Commas are fine.
+            # --------------------------------------------------------------
+            #[[[[Texts]]]]
+            #    A = Settled fine
+            #    Z = Stormy, much rain
+
+        # ------------------------------------------------------------------
+        # National Weather Service: seven-day forecast, active alerts and
+        # radar. No API key, but they do require a User-Agent naming your
+        # application and a contact address. United States coverage only.
+        # ------------------------------------------------------------------
+        [[[NWS]]]
+            enable = true
+            user_agent = weewxha (you@example.com)
+
+            # Defaults to the station's own coordinates from [Station].
+            #latitude =
+            #longitude =
+
+            # Seconds before each is refetched. The location lookup is cached
+            # for a week regardless -- a grid square does not move.
+            forecast_ttl = 1800
+            alerts_ttl = 300
+            timeout = 15
+
+            # Radar site, e.g. KDIX. Defaults to the one covering the station.
+            #radar_station =
+
+            # default = radar.weather.gov as it comes; enhanced = local single-site
+            # centred on the station; standard = regional composite; image = the
+            # cached GIF loop. Frames fall back to the cached image if unreachable.
+            radar_mode = default
+            radar_height = 460
+
+            # Map zoom for the enhanced view, centred on the station's own
+            # coordinates. 8 covers a metropolitan area; higher is closer in.
+            radar_zoom = 8
+
+            # Keep a local copy of the radar loop beside the dashboard. It is what
+            # gets shown when the live radar cannot be reached -- unlike the frame
+            # or the remote GIF, it needs nothing but the web server already
+            # serving this page. Roughly 50-250 kB per refresh.
+            radar_cache = true
+            radar_cache_ttl = 600
+
+        # ------------------------------------------------------------------
+        # Forecast history and the charts drawn from it. WeeWX archives what
+        # the station measured but never what was predicted, so the skin keeps
+        # its own record -- and it is the only source for a Home Assistant
+        # pressure, which never reaches the archive at all.
+        # ------------------------------------------------------------------
+        [[[History]]]
+            enable = true
+            retention = 604800
+
+            # What the charts cover, and how finely the archive is sampled.
+            chart_span = 86400
+            chart_interval = 1800
+
+            # Which observations get a chart. Any observation type works; one
+            # your station doesn't record produces no chart. Wind direction is
+            # refused -- averaging a circular quantity gives a wrong answer.
+            observations = outTemp, outHumidity, barometer, windSpeed, rain, UV
